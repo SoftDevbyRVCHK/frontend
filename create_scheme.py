@@ -36,6 +36,8 @@ im = im.resize((round(w*k), round(h*k)))
 w, h = im.size
 imtk = ImageTk.PhotoImage(im)
 
+print(open("floor2-2.png", 'rb').read())
+
 data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00 \x00\x00\x00 ' \
        b'\x08\x06\x00\x00\x00szz\xf4\x00\x00\x00\x84IDATx\x9c\xedT9\x0e\xc00\x08+U\x1f\xcb\x93xl\x86N\x95H\xe4\x1e' \
        b'\x03P\x06{\x8a\x8c\x89,aYTul?\xe2@\xa4\x99M<2\x19\xa5\xd9\xdf\x96\x10\x17\xa5\x81\x06\x90\xcb\x95\x8b\xd2L' \
@@ -330,7 +332,7 @@ def save(event):
     if f:
         with open(f, "wb") as file:
             file.write(bytes(filename+'\n', "utf-8"))
-            string = (global_move[0]+8)*16+(global_move[1]+8)
+            string = (global_move[0])*16+(global_move[1])
             file.write(string.to_bytes(1, "big"))
             for line in matrix:
                 for el in line:
@@ -368,13 +370,14 @@ def load(event):
             i = int.from_bytes(file.read(1), 'big')
             dy = i % 16
             dx = (i-dy)//16
-            global_move = dx-8, dy-8
+            global_move = dx, dy
 
             canvas.coords(LAY1, 2+global_move[0]*32*k, 2+global_move[1]*32*k)
 
             for y in range(8):
                 for x in range(8):
                     i = int.from_bytes(file.read(1), 'big')
+                    print(i)
                     f1 = i >= 128
                     f2 = (i - 128 * f1) >= 64
                     f3 = (i-128*f1-64*f2) >= 32
