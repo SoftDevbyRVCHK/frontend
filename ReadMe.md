@@ -6,6 +6,10 @@
 
 Файл server.py - сервер для test_client.html, работает с http запросами
 
+Файл system.html - заготовка под звездную систему, на данный момент благодаря серверу отображает Солнце и Землю, частота обновления 50 мс
+
+Файл websocket_server.py - сервер для system.html, работает с websocket
+
 Файл admin_create_module.html - это переработанный в js формат файл create_scheme.py. 
 
 Файл create_scheme.md - инструкция к py файлу, но кардинальных отличий в js версии нет.
