@@ -3,7 +3,8 @@ import asyncio
 import websockets
 
 
-data = {"solar.png": {"a": 0, "b": 0, "e": 0, "G": 100}, "earth.png": {"a": 250, "b": 250, "e": 0, "G": 10}}
+data = {"solar.png": {"a": 0, "e": 0, "s": 0, "t":0, "G": 100}, "earth.png": {"a": 250, "e": 0.017, "s": 0.001, "t": 0, "G": 10},
+        "pluto.png": {"a": 500, "e": 0.5, "s": 1/247.305, "t": 0, "G": 0}}
 
 
 async def handler(websocket, path=''):

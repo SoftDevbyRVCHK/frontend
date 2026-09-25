@@ -6,6 +6,7 @@ let tm = 0;
 
 d3.select("#resourses").append("image").attr("x", canvas.width/2-197/2).attr("y", canvas.height/2-186/2).attr("id", "solar").attr("href", 'data/images/solar_ship.png')
 d3.select("#resourses").append("image").attr("x", canvas.width/2-146/2).attr("y", canvas.height/2-145/2).attr("id", "earth").attr("href", 'data/images/earth_ship.png')
+d3.select("#resourses").append("image").attr("x", canvas.width/2-146/2).attr("y", canvas.height/2-145/2).attr("id", "pluto").attr("href", 'data/images/pluto_ship.png')
 d3.select("#resourses").append("rect").attr("x", 0).attr("y", 0).attr("width", canvas.width).attr("height", canvas.height);
 
 connection.onopen = (event) => {
@@ -21,10 +22,11 @@ connection.onmessage = (event) => {
 //    console.log(data);
     for (key in data){
 //        console.log(key, data[key]);
-        let x = data[key]["a"] * (Math.cos(tm) - data[key]["e"])
-        let y = data[key]["b"] * (Math.sin(tm))
+        res = PlanetPosition2D(data[key]["a"], data[key]["e"], data[key]["s"], data[key]["t"], tm)
+        let x = res.x;
+        let y = res.y;
         d3.select("#PlanetsLayer").append("use").attr("x", x).attr("y", y).attr("href", "#"+key.split(".")[0]);
         }
-    tm += 0.2/6.28;
+    tm += 5;
     setTimeout(() => {connection.send("Reload")}, 50);
 }
