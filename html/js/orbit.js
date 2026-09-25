@@ -1,11 +1,10 @@
-let eccentricity;
-let meanAnomaly;
-
-function halleyMethod(f, x0, tol = Math.pow(10, -7), maxIter = 1000) {
+function halleyMethod(f, x0, tol = Math.pow(10, -12), maxIter = 1000) {
+//    console.log(x0);
   for (let i = 0; i < maxIter; i++) {
     const fx = f[0](x0);
 //    console.log(fx, x0, f, f[0], f[0](0));
 //    return
+
     if (Math.abs(fx) < tol) return x0;
     const fPrime = f[1](x0); // Нужно реализовать или взять готовую
     const fSecond = f[2](x0); // Для второй производной
@@ -14,12 +13,14 @@ function halleyMethod(f, x0, tol = Math.pow(10, -7), maxIter = 1000) {
     const xNext = x0 - (fx * fPrime) / (fPrime * fPrime - 0.5 * fx * fSecond);
     x0 = xNext;
   }
+//  console.log(x0);
   throw new Error("Method failed to converge");
 }
 
 
 function SolveKeplerEquation(meanAnomaly, eccentricity) {
-    return halleyMethod([(x) => {return x - meanAnomaly - eccentricity * Math.sin(x)}, (x) => {return 1 - eccentricity * Math.cos(x)}, (x) => {return eccentricity * Math.sin(x)}], meanAnomaly-eccentricity);
+//    console.log(meanAnomaly-eccentricity, meanAnomaly+eccentricity);
+    return halleyMethod([(x) => {return x - meanAnomaly - eccentricity * Math.sin(x)}, (x) => {return 1 - eccentricity * Math.cos(x)}, (x) => {return eccentricity * Math.sin(x)}], meanAnomaly);
 }
 
 
@@ -30,7 +31,7 @@ function EccentricityAnomaly(eccentricity, meanMotion, start_time, time)
 
 function MeanAnomaly(time, meanMotion, start_time)
 {
-    anomaly = 2 * 3.14 * meanMotion * (time - start_time);
+    anomaly = 6.28 * meanMotion * (time - start_time);
     wrappedAnomaly = anomaly % 6.28;
     return wrappedAnomaly;
 }
@@ -55,5 +56,6 @@ function PlanetPosition2D(large_axis, eccentricity, meanMotion, start_time, time
     e = EccentricityAnomaly(eccentricity, meanMotion, start_time, time);
     r = RadiusVectorLength(large_axis, eccentricity, e);
     v = TrueAnomaly(eccentricity, e);
+    console.log(Math.cos(3.14/2))
     return { x:r * Math.cos(v), y:r * Math.sin(v) };
 }
