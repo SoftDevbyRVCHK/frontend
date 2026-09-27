@@ -56,6 +56,5 @@ function PlanetPosition2D(large_axis, eccentricity, meanMotion, start_time, time
     e = EccentricityAnomaly(eccentricity, meanMotion, start_time, time);
     r = RadiusVectorLength(large_axis, eccentricity, e);
     v = TrueAnomaly(eccentricity, e);
-    console.log(Math.cos(3.14/2))
     return { x:r * Math.cos(v), y:r * Math.sin(v) };
 }

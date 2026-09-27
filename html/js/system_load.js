@@ -6,6 +6,9 @@ let tm = 0;
 let data;
 let updates = false;
 
+let sc = 1;
+let mv = {x: 0, y:0}
+
 //d3.select("#resourses").append("image").attr("x", canvas.width/2-197/2).attr("y", canvas.height/2-186/2).attr("id", "solar").attr("href", 'data/images/solar_ship.png')
 //d3.select("#resourses").append("image").attr("x", canvas.width/2-146/2).attr("y", canvas.height/2-145/2).attr("id", "earth").attr("href", 'data/images/earth_ship.png')
 //d3.select("#resourses").append("image").attr("x", canvas.width/2-250/2).attr("y", canvas.height/2-250/2).attr("id", "pluto").attr("href", 'data/images/pluto_ship.png')
@@ -82,3 +85,25 @@ function update(){
 }
 
 update();
+
+
+function stylize(){
+    d3.select("#scalable").attr("style", `transform: translate(${mv.x}px, ${mv.y}px) scale(${sc})`)
+}
+
+
+function scale(event){
+    sc -= event.deltaY * 0.001;
+    stylize()
+}
+
+function move(event){
+    if (event.buttons == 1) {
+        mv.x += event.movementX;
+        mv.y += event.movementY;
+        stylize()
+    }
+}
+
+document.body.addEventListener("mousemove", move)
+document.body.addEventListener("mousewheel", scale)
