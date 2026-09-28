@@ -193,15 +193,15 @@ function ship_update(){
 //    if (v > 10000) {ship.vx =0;ship.vy=0;v=0}
 //
     for (key in data){
-        g = data[key]["G"] * ship.mass;
+        g = data[key]["G"] * ship.mass * 1e+2;
         el = d3.select("#P"+key.split('/').pop().split(".")[0]);
         x = el.attr("x")-0+data[key]["r"]; y= el.attr("y")-0+data[key]["r"];
 //        console.log(x, y)
         x0 = canvas.width/2+ship.x; y0 = canvas.height/2+ship.y;
         d = (x0-x)*(x0-x) + (y0-y)*(y0-y);
         g /= d;
-        ship.vx += g * (x-x0);
-        ship.vy += g * (y-y0);
+        ship.vx += g * (x-x0) / Math.sqrt(d);
+        ship.vy += g * (y-y0) / Math.sqrt(d);
     }
 
 //    let vx=ship.vx/step, vy=ship.vy/step;
