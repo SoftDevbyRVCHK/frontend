@@ -14,6 +14,8 @@ let planet = {x: 0, y:0}
 
 const steps = 200;
 let step = 50;
+let Id = 0;
+
 
 const speed = 0.1, aspeed=1;
 
@@ -33,18 +35,32 @@ d3.select("#ShipsLayer").append("ellipse").attr("cx", 0).attr("cy", 0).attr("rx"
 
 connection.onopen = (event) => {
     console.log("Connection opened");
-    connection.send("Reload");
+    connection.send("New");
 };
 
 
 connection.onmessage = (event) => {
-    updates = true;
 //    d3.selectAll("use").remove();
-//    console.log(event.data);
-    data = JSON.parse(event.data.replaceAll("'", '"'));
+//    console.log(event.data.replaceAll("'", '"'));
+    tdata = JSON.parse(event.data.replaceAll("'", '"'));
+
+    if (tdata["type"] == "planets") {updates = true;data = tdata["data"]; Id = tdata["id"];
+    create();
+    //update();
+    }
+    if (tdata["type"] == "ships") {
+        d3.selectAll(".ships").remove()
+        for (cell in tdata["data"]){
+            //console.log(el, tdata["data"])
+            cell = tdata["data"][cell]
+
+                    {console.log(el, cell);
+                    d3.select("#ShipsLayer").append("circle").attr("cx", canvas.width/2+cell.x).attr("cy", canvas.height/2+cell["y"])
+                    .attr("r", 5).attr("class", "ships").attr("fill", cell["col"])}
+        }
+    }
 //    console.log(data);
 
-    create();
 }
 
 function create(){
@@ -102,7 +118,6 @@ function update(){
     if (!updates)setTimeout(update, 50);
 }
 
-update();
 
 
 function stylize(){
@@ -128,7 +143,7 @@ function orbit(){
 }
 
 function ship_move(e){
-    console.log(e)
+//    console.log(e)
     if (forward.includes(e.code))
         {ship.vx += speed*Math.cos(ship.angle/180*3.14); ship.vy += speed*Math.sin(ship.angle/180*3.14);
 
@@ -236,6 +251,9 @@ function ship_update(){
     ship.y += ship.vy;
     ship.angle += ship.va;
 
+    //if (tm % (step * 4) == 0)
+    connection.send(`{"type": "update", "id": ${Id}, "data":{"x": ${ship.x}, "y": ${ship.y}}}`)
+
 //    console.log(ship);
 
     d3.select("#user").attr("cx", canvas.width/2+ship.x).attr("cy", canvas.height/2+ship.y).attr("style", "transform-origin:"+(canvas.width/2+ship.x)+"px "+(canvas.height/2+ship.y)+"px;"+`transform:rotate(${ship.angle}deg)`);
@@ -244,3 +262,6 @@ function ship_update(){
 document.body.addEventListener("mousemove", move)
 document.body.addEventListener("mousewheel", scale)
 document.body.addEventListener("keydown", ship_move)
+window.addEventListener('beforeunload', (event) => {
+  connection.send("{'type': 'delete', 'id':"+Id+"}")
+});
