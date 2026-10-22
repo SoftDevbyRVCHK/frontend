@@ -48,7 +48,7 @@ class IControls {
 
 
 class Joystick extends IControls {
-    constructor(xc, yc, img_base, img_connector, img_controller) {
+    constructor(xc, yc, mx, img_base, img_connector, img_controller) {
         super();
         this.joystick_g = interfaceLayer.append("g").attr("id", "joystick");
         this.circle = new D3Image(this.joystick_g, img_base, xc-100, yc-100, {width: 200, height: 200});
@@ -62,16 +62,19 @@ class Joystick extends IControls {
         this.y = 0;
         this.angle = 0;
 
+        this.mx = mx;
+
 //        this.connect();
         console.log(this)
     }
     
     joy_update() {
         //this.circle.attr("transform", `translate(${this.x}, ${this.y})`)
-        let sc = Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / 60 + 1e-22, 1.33333333333);
+        let sc = Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / 60 + 1e-22, this.mx/60);
 
         let ang = Math.atan2(this.y, this.x);
-        this.line.attr('transform', `scale(${1},${sc}), translate(${0}, ${-this.cy+this.cy/sc})`)
+        const sc_x = 1.2;
+        this.line.attr('transform', `scale(${sc_x},${sc}), translate(${this.cx*(1/sc_x-1)}, ${this.cy*(1/sc-1)})`)
         this.circle.attr("transform", `rotate(${-ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
         this.joy.attr("transform", `rotate(${this.angle-ang/3.14*180-90}, ${this.cx}, ${this.cy-sc*60}) translate(${0}, ${-sc*60})`)
         this.joystick_g.attr("transform", `rotate(${ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
@@ -112,12 +115,15 @@ class Joystick extends IControls {
     }
 
     active_modules(){
-        return [("engine1", Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / 60 + 1e-22, 1.33333333333)), ("rotator1", this.angle)]
+        let ang  = this.angle % 360
+        if (ang>180)
+            ang = 360 - ang
+        return [("engine1", Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / this.mx + 1e-22, 1)) * 20, ("rotator1", ang/180*3.14/36)]
     }
 }
 
 
-let move_control = new Joystick(canvas.width -100, canvas.height -100, "data/icons/base.png", "data/icons/connector.png", "data/icons/controller.png")
+let move_control = new Joystick(canvas.width -100, canvas.height -100, 50, "data/icons/base.png", "data/icons/connector.png", "data/icons/controller.png")
 console.log(move_control)
 move_control.connect();
 
