@@ -2,6 +2,7 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import mimetypes
 from random import randint
+import socket
 
 rects = []
 
@@ -114,8 +115,8 @@ class MyHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"DELETE request received!")
 
 
-hostName = "localhost"
-serverPort = 8000
+hostName = "192.168.43.106"
+serverPort = 54125
 
 # Инициализация сервера
 webServer = HTTPServer((hostName, serverPort), MyHandler)

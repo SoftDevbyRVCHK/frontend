@@ -9,20 +9,30 @@ let updates = false;
 let sc = 1;
 let mv = {x: 0, y:0}
 
-let ship = {x: 300, y: 0, angle: 0, vx: 0, vy: 0, va: 0, orbit: {a: 0, e:0, s: 0, t:0, n:0}, mass: 1e-5}
-let planet = {x: 0, y:0}
+const m_to_px = 1e-8;
+const G = 6.67e-11 * m_to_px * m_to_px;
+const Tk = 1e-3//26820/20;
+
+
 
 const steps = 200;
-let step = 50;
+let step = 100000//26280000 / 5 * 8;
 let Id = 0;
 
 
-const speed = 0.1, aspeed=1;
+
+let ship = {x: 1078.5605968662408, y: -5, angle: 0, vx: 9e-3, vy: 0*35000*m_to_px, va: 0, mass: 4.5e+3}
+let planet = {x: 0, y:0}
+
+
+const speed = 2/step/Tk, aspeed=1;
 
 const forward = ["KeyW", "ArrowUp"]
 const backward = ["KeyS","ArrowDown"]
 const left = ["KeyA","ArrowLeft"]
 const right = ["KeyD", "ArrowRight"]
+const leftP = ["KeyO"]
+const rightP = ["KeyP"]
 
 //d3.select("#resourses").append("image").attr("x", canvas.width/2-197/2).attr("y", canvas.height/2-186/2).attr("id", "solar").attr("href", 'data/images/solar_ship.png')
 //d3.select("#resourses").append("image").attr("x", canvas.width/2-146/2).attr("y", canvas.height/2-145/2).attr("id", "earth").attr("href", 'data/images/earth_ship.png')
@@ -54,7 +64,7 @@ connection.onmessage = (event) => {
             //console.log(el, tdata["data"])
             cell = tdata["data"][cell]
 
-                    {console.log(el, cell);
+                    {//console.log(el, cell);
                     d3.select("#ShipsLayer").append("circle").attr("cx", canvas.width/2+cell.x).attr("cy", canvas.height/2+cell["y"])
                     .attr("r", 5).attr("class", "ships").attr("fill", cell["col"])}
         }
@@ -68,6 +78,7 @@ function create(){
         for (key in data){
 //        console.log(key, data[key]);
         res = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm)
+        console.log(key, res, PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm+step))
         let x = res.x;
         let y = res.y;
         el = d3.select("#PlanetsLayer")
@@ -92,10 +103,12 @@ function update(){
         for (key in data){
 
 //        console.log(key, data[key]);
-        res0 = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm - step)
+//        res0 = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm - step)
         res = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm)
-        let x = res.x-res0.x*0;
-        let y = res.y-res0.y*0;
+        let x = res.x//-res0.x*0;
+        let y = res.y//-res0.y*0;
+//        if (Math.abs(y) < 100 && !key.includes("solar"))
+//            console.log(key, Date.now());
 //        x=0;
 //        y=0;
 //        el = d3.select("#G"+key.split('/').pop().split(".")[0])
@@ -126,7 +139,7 @@ function stylize(){
 
 
 function scale(event){
-    sc -= event.deltaY * 0.001;
+    sc -= event.deltaY * 1e-4;
     stylize()
 }
 
@@ -184,10 +197,14 @@ function ship_move(e){
 //        ship.orbit.a = a; ship.orbit.e = e; ship.orbit.n = Math.atan2(sinn, cosn); ship.orbit.s = Math.sqrt(sum_v) / a; ship.orbit.t = -ship.orbit.n + Math.atan2(ship.y-planet.y, ship.x-planet.x);
         //ship.orbit.
         }
-    if (left.includes(e.code))
+    if (leftP.includes(e.code))
         {ship.va -= aspeed}
-    if (right.includes(e.code))
+    if (rightP.includes(e.code))
         {ship.va += aspeed}
+     if (left.includes(e.code))
+        {ship.angle -= aspeed}
+    if (right.includes(e.code))
+        {ship.angle += aspeed}
     }
 
 
@@ -202,21 +219,46 @@ function ship_update(){
 //    console.log(x, y, res, Math.cos(orbit.n));
 //    ship.vx = x - ship.x;
 //    ship.vy = y - ship.y;}
-    d3.select("#O"+(tm - step * steps)).remove();
+    d3.selectAll(".O"+(tm - step * steps)).remove();
     d3.select("#OP"+(tm - step * 40 * steps)).remove();
+    xst = ship.x;
+    yst = ship.y;
+//    d3.select("#OrbitsLayer").append("line").attr("x1", xst+ship.vx*step*Tk).attr("y1", yst+ship.vy*step*Tk)
+//    .attr("x2", xst).attr("y2", yst).attr("stroke", "orange").attr("class", "O"+tm)
+//    .attr("style", `transform:translate(${canvas.width/2}px, ${canvas.height/2}px)`)
 //    v = ship.vx*ship.vx+ship.vy*ship.vy
 //    if (v > 10000) {ship.vx =0;ship.vy=0;v=0}
 //
+//    console.log(ship)
+    ship.x += ship.vx*step*Tk;
+    ship.y += ship.vy*step*Tk;
+////    console.log(ship)
     for (key in data){
-        g = data[key]["G"] * ship.mass * 1e+2;
+        g = data[key]["G"] * G;
         el = d3.select("#P"+key.split('/').pop().split(".")[0]);
-        x = el.attr("x")-0+data[key]["r"]; y= el.attr("y")-0+data[key]["r"];
-//        console.log(x, y)
-        x0 = canvas.width/2+ship.x; y0 = canvas.height/2+ship.y;
-        d = (x0-x)*(x0-x) + (y0-y)*(y0-y);
+        x = el.attr("x")-0+data[key]["r"]-canvas.width/2; y= el.attr("y")-0+data[key]["r"]-canvas.height/2;
+         x = x * Math.cos(data[key]['n']*3.14/180)-y * Math.sin(data[key]['n']*3.14/180)//-res0.x*0;
+        y = y * Math.cos(data[key]['n']*3.14/180)+x * Math.sin(data[key]['n']*3.14/180)
+        console.log(x, y)
+        x0 = ship.x; y0 = ship.y;
+        console.log('\t', x0, y0)
+        d = (x0-x)*(x0-x) + (y0-y)*(y0-y) + 1e-63;
+        console.log(key, d);
         g /= d;
-        ship.vx += g * (x-x0) / Math.sqrt(d);
-        ship.vy += g * (y-y0) / Math.sqrt(d);
+//        g1 = data[key]["G"] * G;
+//        el = d3.select("#P"+key.split('/').pop().split(".")[0]);
+//        res = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm -step-step)
+//        x = res.x;
+//        y = res.y;
+//         x = x * Math.cos(data[key]['n']*3.14/180)-y * Math.sin(data[key]['n']*3.14/180)//-res0.x*0;
+//        y = y * Math.cos(data[key]['n']*3.14/180)+x * Math.sin(data[key]['n']*3.14/180)
+//        d = (xst-x)*(xst-x) + (yst-y)*(yst-y) + 1e-63;
+//        g += g1/(2*d);
+        console.log(g * step*Tk*m_to_px)
+//         ship.x += g * (x-x0) / Math.sqrt(d) * step * step * Tk * Tk / 2 * m_to_px;
+//         ship.y += g * (y-y0) / Math.sqrt(d) * step * step * Tk * Tk / 2 * m_to_px;
+        ship.vx += g * (x-x0) / Math.sqrt(d) * step * Tk * m_to_px;
+        ship.vy += g * (y-y0) / Math.sqrt(d) * step * Tk * m_to_px;
     }
 
 //    let vx=ship.vx/step, vy=ship.vy/step;
@@ -224,31 +266,78 @@ function ship_update(){
 //    ship.vy = 0;
 
 //
-//    for (let p =0; p < step; p++ ){
+    count = 20000;
+    k = step/count;
+    datap = []
+    for (key in data)
+    {res = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm -step-step);
+        el = d3.select("#P"+key.split('/').pop().split(".")[0]);
+        xr = el.attr("x")-0+data[key]["r"]-canvas.width/2; yr= el.attr("y")-0+data[key]["r"]-canvas.height/2;
+        x = res.x * Math.cos(data[key]['n']*3.14/180)-res.y * Math.sin(data[key]['n']*3.14/180)//-res0.x*0;
+        y = res.y * Math.cos(data[key]['n']*3.14/180)+res.x * Math.sin(data[key]['n']*3.14/180)
+//        console.log(x, y)
+        datap.push({g: data[key]["G"] * G, x0: res.x, y0: res.y, dx: xr-res.x, dy: yr-res.y})
+//        console.log(datap)
+        }
+    vx = ship.vx;
+    vy = ship.vy;
+//    for (let p =0; p < count; p++ ){
+//        vx = ship.vx;
+//    vy = ship.vy;
 //
-//        for (key in data){
-//            g = data[key]["G"] * ship.mass;
-//            el = d3.select("#P"+key.split('/').pop().split(".")[0]);
-//            x = el.attr("x")-0+data[key]["r"]; y= el.attr("y")-0+data[key]["r"];
+//        ship.x += vx*Tk*k;
+//        ship.y += vy*Tk*k;
+//
+//        for (el of datap){
+////            console.log(el)
+//    //        console.log(key)
+////            g = data[key]["G"] * G;
+//                g = el.g
+//    //        el = d3.select("#P"+key.split('/').pop().split(".")[0]);
+//    //        x = el.attr("x")-0+data[key]["r"]; y= el.attr("y")-0+data[key]["r"];
+////            res = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm-step-step+p*k)
+////            x = res.x * Math.cos(data[key]['n']*3.14/180)-res.y * Math.sin(data[key]['n']*3.14/180)//-res0.x*0;
+////            y = res.y * Math.cos(data[key]['n']*3.14/180)+res.x * Math.sin(data[key]['n']*3.14/180)
+////            console.log(x, y)
+//    //        res = PlanetPosition2D(a=data[key]["a"], e=data[key]["e"], data[key]["s"], data[key]["t"], tm-step-step+(p+1)*k)
+//    //        dx = res.x-x;
+//    //        dy = res.y-y;
+//            x = el.x0 + (el.dx * k * p)
+//            y = el.y0 + (el.dy * k * p)
 //    //        console.log(x, y)
-//            x0 = canvas.width/2+ship.x; y0 = canvas.height/2+ship.y;
+//            x0 = ship.x; y0 = ship.y;
+//    //        console.log(x0, y0)
 //            d = (x0-x)*(x0-x) + (y0-y)*(y0-y);
-//            g /= d;
-//            ship.vx += g * (x-x0) / step;
-//            ship.vy += g * (y-y0) / step;
+//    //        console.log(d);
+//
+//            if (d==0) {
+//                console.log(x0, y0, x, y)
+//    ////            ship.x = x;
+//    ////            ship.y = y;
+//    //            ship.vx = dx/k;
+//    //            ship.vy = dy/k;
+//    //            console.log("!", el)
+//            }
+//            else{
+//    //        console.log(key, d);
+//                g /= d;
+////                ship.x += g * (x-x0) / Math.sqrt(d) * Tk * Tk / 2 * m_to_px*k*k;
+////                ship.y += g * (y-y0) / Math.sqrt(d) * Tk * Tk / 2 * m_to_px*k*k;
+//                ship.vx += g * (x-x0) / Math.sqrt(d) * Tk * m_to_px*k;
+//                ship.vy += g * (y-y0) / Math.sqrt(d) * Tk * m_to_px*k;
+//            }
 //        }
-//        ship.x += ship.vx / step ;
-//        ship.y += ship.vy / step ;
-//        }
+//    }
 //    ship.vx += vx*step; ship.vy += vy*step;
     d3.select("#OrbitsLayer").append("line").attr("x1", ship.x).attr("y1", ship.y)
-    .attr("x2", ship.x+ship.vx).attr("y2", ship.y+ship.vy).attr("stroke", "aqua").attr("id", "O"+tm)
+    .attr("x2", xst).attr("y2", yst).attr("stroke", "aqua").attr("class", "O"+tm)
     .attr("style", `transform:translate(${canvas.width/2}px, ${canvas.height/2}px)`)
     if (tm % (40*step) == 0){
         d3.select("#OrbitsLayer").append("circle").attr("cx", ship.x+canvas.width/2).attr("cy", ship.y+canvas.height/2).attr("r", 3).attr("fill", "green").attr("id", "OP"+tm)
     }
-    ship.x += ship.vx;
-    ship.y += ship.vy;
+//    console.log(ship.x, ship.y)
+//    for (key in data)
+//        console.log(d3.select("#P"+key.split('/').pop().split(".")[0]).attr("y")-canvas.height/2+data[key]["r"])
     ship.angle += ship.va;
 
     //if (tm % (step * 4) == 0)

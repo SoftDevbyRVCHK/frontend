@@ -8,6 +8,8 @@ const resourceLayer = d3.select("#resourses");
 resourceLayer.attr("transform", "scale(0)")
 const interfaceLayer = d3.select("#InterfaceLayer");
 
+const base64 = Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
+
 canvas = {width: window.screen.width, height: window.screen.height -125, x: 0, y: 0, scale: 1}
 
 //joystick_g = interfaceLayer.append("g").attr("id", "joystick")
@@ -24,19 +26,116 @@ joystick = {"x": 0, "y": 0, "angle": 0}
 localStorage.clear()
 
 
-class D3Image {
+function SizeFromPng(data) {
+    let w = 0;
+    for (i=25+22; i<28+22;i++){
+        w <<= 6;
+        let symb = data[i];
+        w += base64.findIndex((s) => s==symb);
+    }
+    w >>= 8;
+    let h = 0;
+    for (i=30+22; i<32+22;i++){
+        h <<= 6;
+        let symb = data[i];
+        h += base64.findIndex((s) => s==symb);
+    }
+    nw = w/32;
+    nh = h/32;
+    return {width: w, height:h}
+}
+
+class D3Use {
+    constructor(){
+        this.base_transform = "";
+        this.x=0; this.y=0;
+    }
+
+    transform(transformation, f) {
+        if (this.attr("transform") == null)
+            this.attr("transform", "");
+        if (f){
+            this.base_transform = transformation + " " +this.base_transform;
+        }
+
+        this.el.attr("transform", transformation + " " +this.attr("transform"));
+        return this;
+    }
+
+	translate(dx, dy, f=false){
+		this.transform(`translate(${dx}, ${dy})`, f);
+		return this;
+    }
+
+	scale(sx, sy=null, f=false, cx=this.x, cy=this.y) {
+		if (sy != null) {
+			 this.translate(-this.x+cx, -this.y+cy, f).transform(`scale(${sx}, ${sy})`, f).translate(this.x-cx, this.y-cy, f);
+		}
+		else {
+			 this.translate(-this.x+cx, -this.y+cy, f).transform(`scale(${sx})`, f).translate(this.x-cx, this.y-cy, f);
+		}
+		return this;
+	}
+
+	rotate(ang, cx=null, cy=null, f=false){
+		if (cx == null | cy == null)
+			this.transform(`rotate(${ang})`, f);
+		else
+			this.transform(`rotate(${ang}, ${cx}, ${cy})`, f);
+		return this;
+	}
+
+	attr(func, arg=null){
+	    if (arg == null)
+	        return this.el.attr(func);
+	    else
+	        return this.el.attr(func, arg);
+	}
+
+	animate() {
+	    this.attr("transform", this.base_transform);
+	    this.transform("");
+	    return this;
+	}
+}
+
+
+class D3Image extends D3Use{
     static count = 0;
     constructor(layer, filename, x, y, size=null) {
-       let res=null;
+        super()
+        let res=null;
         if ((res = localStorage.getItem(filename)) == null)
             {
             resourceLayer.append("image").attr("href", filename).attr("id", "__img"+(++D3Image.count));
-            res = localStorage[filename] = D3Image.count;
+            res = (localStorage[filename] = D3Image.count);
             }
-        this.el = layer.append("use").attr("x", x).attr("y", y).attr("href", "#__img"+res)
-        if (size)
-            this.el.attr("width", size.width).attr("height", size.height)
-        return this.el;
+        this.el = layer.append("use").attr("href", "#__img"+res)
+        let bsize = document.getElementById("__img"+res).getBBox();
+    //        while (bsize.width == 0)
+    //            bsize = document.getElementById("__img"+res).getBBox()
+        if (size == null)
+            size = bsize
+        this.attr("x", 0).attr("y", 0);
+        this.x = x+size.width/2; this.y = y+size.height/2;
+        this.scale("1e-7", "1e-8", true).translate(x, y, true);
+//        if (size)
+//            this.el.attr("transform", (this.base_transform = `scale(${size.width}, ${size.height}) translate(${x * (1/size.width-1)}, ${y * (1/size.height-1)})`))
+//        return this.el;
+        this.animate();
+        if (bsize.width != 0)
+            this.sizer(size.width/bsize.width, size.height/bsize.height);
+        else{
+            let handler = () => {bsize = document.getElementById("__img"+res).getBBox();this.sizer(size.width/bsize.width, size.height/bsize.height);  document.getElementById("__img"+res).removeEventListener("load", handler);}
+            document.getElementById("__img"+res).addEventListener("load", handler)
+            console.log("!")
+            }
+    }
+
+    sizer(sx, sy){
+        this.base_transform = this.base_transform.replace("1e-7", sx).replace("1e-8", sy);
+        this.attr("transform", this.attr("transform").replace("1e-7", sx).replace("1e-8", sy))
+//        console.log("!!", this.base_transform, this.base_transform.replace("1e-7", sx).replace("1e-8", sy))
     }
 }
 
@@ -52,9 +151,15 @@ class Joystick extends IControls {
         super();
         this.joystick_g = interfaceLayer.append("g").attr("id", "joystick");
         this.circle = new D3Image(this.joystick_g, img_base, xc-100, yc-100, {width: 200, height: 200});
-        this.line = new D3Image(this.joystick_g, img_connector, xc-100, yc-100, {width: 200, height: 200}).attr("transform", "scale(1,"+"0"+ ")");
-        this.joy = new D3Image(this.joystick_g, img_controller, xc-100, yc-100, {width: 200, height: 200});
-        
+        this.line = new D3Image(this.joystick_g, img_connector, xc-100, yc-100, {width: 200, height: 200});
+        this.joy = new D3Image(this.joystick_g, img_controller, xc-100, yc-100, {width: 160, height: 160});
+
+        //this.line.transform("scale(1,"+"0"+ ")").attr("id", "jline");
+        this.line.scale(1.2, 0).attr("id", "jline");
+//        this.joy.transform("translate(20, 20)", true)
+        this.joy.translate(20, 20, true);
+        console.log("!")
+
         this.cx = xc;
         this.cy = yc;
 
@@ -63,6 +168,10 @@ class Joystick extends IControls {
         this.angle = 0;
 
         this.mx = mx;
+
+        document.getElementById("joystick").addEventListener("mousemove", (event) => {this.power(event)});
+        document.getElementById("joystick").addEventListener("mousewheel", (event) => {this.rot(event)});
+
 
 //        this.connect();
         console.log(this)
@@ -74,10 +183,18 @@ class Joystick extends IControls {
 
         let ang = Math.atan2(this.y, this.x);
         const sc_x = 1.2;
-        this.line.attr('transform', `scale(${sc_x},${sc}), translate(${this.cx*(1/sc_x-1)}, ${this.cy*(1/sc-1)})`)
-        this.circle.attr("transform", `rotate(${-ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
-        this.joy.attr("transform", `rotate(${this.angle-ang/3.14*180-90}, ${this.cx}, ${this.cy-sc*60}) translate(${0}, ${-sc*60})`)
-        this.joystick_g.attr("transform", `rotate(${ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
+//        this.line.attr('transform', `scale(${sc_x},${sc}), translate(${this.cx*(1/sc_x-1)}, ${this.cy*(1/sc-1)})`)
+        console.log(document.getElementById("jline").getBoundingClientRect())
+        //this.line.transform(`scale(${sc_x},${sc}), translate(${this.cx*(1/sc_x-1)}, ${this.cy*(1/sc-1)})`)
+        this.line.animate().scale(sc_x, sc, false, 0, 0).rotate(ang/3.14*180+90, this.cx, this.cy);
+        console.log(document.getElementById("jline").getBoundingClientRect())
+//        this.circle.attr("transform", `rotate(${-ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
+        this.circle.animate()
+//        this.joy.attr("transform", `rotate(${this.angle-ang/3.14*180-90}, ${this.cx}, ${this.cy-sc*60}) translate(${0}, ${-sc*60})`)
+        this.joy.animate().rotate(this.angle-(ang/3.14*180+90), this.cx, this.cy).translate(0, -60*sc).rotate(ang/3.14*180+90, this.cx, this.cy)
+//        this.joy.animate().transform(`rotate(${this.angle-ang/3.14*180-90}, ${this.cx}, ${this.cy-sc*60}) translate(${0}, ${-sc*60})`)
+//        this.joystick_g.attr("transform", `rotate(${ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
+//        this.joystick_g.transform(`rotate(${ang/3.14*180+90}, ${this.cx}, ${this.cy})`);
     }
 
     power(event) {
@@ -118,14 +235,14 @@ class Joystick extends IControls {
         let ang  = this.angle % 360
         if (ang>180)
             ang = 360 - ang
-        return [("engine1", Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / this.mx + 1e-22, 1)) * 20, ("rotator1", ang/180*3.14/36)]
+        return [{id: 1, power: Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / this.mx + 1e-22, 1)}, {id: 2, power: ang/180}]
     }
 }
 
 
-let move_control = new Joystick(canvas.width -100, canvas.height -100, 50, "data/icons/base.png", "data/icons/connector.png", "data/icons/controller.png")
+let move_control = new Joystick(canvas.width -100, canvas.height -100, 90-40*0.8, "data/icons/base.png", "data/icons/connector.png", "data/icons/controller.png")
 console.log(move_control)
-move_control.connect();
+//move_control.connect();
 
 
 function image(el, x, y, img) {
@@ -145,15 +262,17 @@ connection.onmessage = (event) => {
     type = data["type"];
     data = data["data"];
     for (cell of data["planets"]) {
-        res = image(planetLayer, cell.x, cell.y, cell.image).attr("width", cell.width).attr("height", cell.height).transition().duration(50)
-        .attr("x", cell.x+cell.vx).attr("y", cell.y+cell.vy).attr("class", "IUpdatable")
+//        res = image(planetLayer, cell.x, cell.y, cell.image).attr("width", cell.width).attr("height", cell.height).transition().duration(50)
+//        .attr("x", cell.x+cell.vx).attr("y", cell.y+cell.vy).attr("class", "IUpdatable")
+        D3Image(planetLayer, cell.image, cell.x, cell.y, cell).attr("class", "IUpdatable")
     }
     for (cell of data["ships"]) {
-        res = image(shipLayer, cell.x, cell.y, cell.image).attr("transform",
-        `rotate(${cell.angle}, ${cell.x+cell.width/2}, ${cell.y+cell.height/2})`).attr("width", cell.width).attr("height", cell.height)
-        .transition().duration(500)
-        .attr("x", cell.x+cell.vx).attr("y", cell.y+cell.vy).attr("transform",
-        `rotate(${cell.angle+cell.w}, ${cell.x+cell.width/2+cell.vx}, ${cell.y+cell.height/2+cell.vy})`).attr("class", "IUpdatable")
+//        res = image(shipLayer, cell.x, cell.y, cell.image).attr("transform",
+//        `rotate(${cell.angle}, ${cell.x+cell.width/2}, ${cell.y+cell.height/2})`).attr("width", cell.width).attr("height", cell.height)
+//        .transition().duration(500)
+//        .attr("x", cell.x+cell.vx).attr("y", cell.y+cell.vy).attr("transform",
+//        `rotate(${cell.angle+cell.w}, ${cell.x+cell.width/2+cell.vx}, ${cell.y+cell.height/2+cell.vy})`).attr("class", "IUpdatable")
+        D3Image(shipLayer, cell.image, cell.x, cell.y, cell).attr("class", "IUpdatable")
     }
     setTimeout(update, 500)
 };

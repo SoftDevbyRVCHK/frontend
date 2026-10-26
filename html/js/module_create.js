@@ -133,11 +133,11 @@ function click(event) {
         if (x == global_move[0] || x == nw -1+global_move[0] || y == global_move[1] || y == nh -1+global_move[1])
             {
             if (matrix[y][x][2])
-                {start_list.push([x, y]);length++;}
+                {start_list.push([x-global_move[0], y-global_move[1]]);}
             else
-                {start_list.splice(start_list.indexOf([x, y]), 1);length--;}
-            start_list.sort(sortf)
-//            console.log(start_list);
+                {start_list.splice(start_list.indexOf([x-global_move[0], y-global_move[1]]), 1);}
+            start_list.sort(sortf);
+            console.log(start_list);
             }
 //        console.log(matrix[y][x][2]);
         x1 = (x+1) * sz;
@@ -426,49 +426,52 @@ function sortf(a, b) {
 
 function create(x, y) {
     let el = d3.select("svg").append("use").attr("x", (x+1)*sz).attr("y", y*sz).attr("id", "temp"+x+"x"+y).attr("href", "#sel");
+    delays[y][x] = -1;
     setTimeout(() => {el.remove()}, 150)
     }
 
 
 function update() {
 
-    start_list.splice(0);
-
-    y = global_move[1];
-
-    for (x=global_move[0]; x<global_move[0]+nw-1; x++)
-        if (matrix[y][x][2])
-            start_list.push([x, y]);
-
-    x = global_move[0]+nw-1;
-
-    for (y=global_move[1]; y<global_move[1]+nh-1; y++)
-        if (matrix[y][x][2])
-            start_list.push([x, y]);
-
-
-    y = global_move[1]+nh-1;
-
-    for (x=global_move[0]+nw-1; x>global_move[0]; x--)
-        if (matrix[y][x][2])
-            start_list.push([x, y]);
-
-    x = global_move[0];
-
-    for (y=global_move[1]+nh-1; y>global_move[0]; y--)
-        if (matrix[y][x][2])
-            start_list.push([x, y]);
+//    start_list.splice(0);
+//
+//    y = global_move[1];
+//
+//    for (x=global_move[0]; x<global_move[0]+nw-1; x++)
+//        if (matrix[y][x][2])
+//            start_list.push([x, y]);
+//
+//    x = global_move[0]+nw-1;
+//
+//    for (y=global_move[1]; y<global_move[1]+nh-1; y++)
+//        if (matrix[y][x][2])
+//            start_list.push([x, y]);
+//
+//
+//    y = global_move[1]+nh-1;
+//
+//    for (x=global_move[0]+nw-1; x>global_move[0]; x--)
+//        if (matrix[y][x][2])
+//            start_list.push([x, y]);
+//
+//    x = global_move[0];
+//
+//    for (y=global_move[1]+nh-1; y>global_move[0]; y--)
+//        if (matrix[y][x][2])
+//            start_list.push([x, y]);
 
     if (start_list.length > 0)
     {
         phase %= start_list.length;
         p = start_list[phase++];
 //        console.log(p);
-        x = p[0]; y = p[1];
+        x = p[0]+global_move[0]; y = p[1]+global_move[1];
 
-        let copy = [];
-        for (i=0; i<8; i++)
-            copy.push([...delays[i]]);
+        copy = delays;
+
+//        let copy = [];
+//        for (i=0; i<8; i++)
+//            copy.push([...delays[i]]);
 //        console.log(copy, delays);
         next(copy, x, y, 0);
 
