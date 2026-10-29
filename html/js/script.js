@@ -23,6 +23,8 @@ canvas = {width: window.screen.width, height: window.screen.height -125, x: 0, y
 
 joystick = {"x": 0, "y": 0, "angle": 0}
 
+modules = []
+
 localStorage.clear()
 
 
@@ -55,10 +57,13 @@ class D3Use {
         if (this.attr("transform") == null)
             this.attr("transform", "");
         if (f){
-            this.base_transform = transformation + " " +this.base_transform;
+            this.attr("transform", this.attr("transform").replace(new RegExp(this.base_transform.replaceAll("(", "\\(").replaceAll(")", "\\)")+"$"),
+            (this.base_transform = transformation + " " +this.base_transform)));
+//            this.base_transform = transformation + " " +this.base_transform;
+            transformation = "";
         }
 
-        this.el.attr("transform", transformation + " " +this.attr("transform"));
+        this.attr("transform", transformation + " " +this.attr("transform"));
         return this;
     }
 
@@ -140,15 +145,29 @@ class D3Image extends D3Use{
 }
 
 
-class IControls {
-    constructor(){}
-    active_modules() {return []}
+class IModule {
+    constructor(_id){
+        this.id = _id;
+        this.power = 0;
+    }
+    stringify(){
+        return `{id: ${this.id}, power: ${this.power}}`;
+    }
+
+    set(_power){
+        this.power = _power;
+    }
+
+    add(_power){
+        this.power += _power;
+        this.power = Math.min(Math.max(this.power, 0), 1)
+    }
 }
 
 
-class Joystick extends IControls {
-    constructor(xc, yc, mx, img_base, img_connector, img_controller) {
-        super();
+class Joystick{
+    constructor(xc, yc, mx, img_base, img_connector, img_controller, mm, mr) {
+//        super();
         this.joystick_g = interfaceLayer.append("g").attr("id", "joystick");
         this.circle = new D3Image(this.joystick_g, img_base, xc-100, yc-100, {width: 200, height: 200});
         this.line = new D3Image(this.joystick_g, img_connector, xc-100, yc-100, {width: 200, height: 200});
@@ -175,6 +194,8 @@ class Joystick extends IControls {
 
 //        this.connect();
         console.log(this)
+        this.movement_module = mm;
+        this.rotation_module = mr;
     }
     
     joy_update() {
@@ -195,6 +216,11 @@ class Joystick extends IControls {
 //        this.joy.animate().transform(`rotate(${this.angle-ang/3.14*180-90}, ${this.cx}, ${this.cy-sc*60}) translate(${0}, ${-sc*60})`)
 //        this.joystick_g.attr("transform", `rotate(${ang/3.14*180+90}, ${this.cx}, ${this.cy})`)
 //        this.joystick_g.transform(`rotate(${ang/3.14*180+90}, ${this.cx}, ${this.cy})`);
+        this.movement_module.set(Math.min(Math.sqrt(this.x*this.x+this.y*this.y) / this.mx, 1))
+        ang  = this.angle % 360
+        if (ang>180)
+            ang = 360 - ang
+        this.rotation_module.set(ang)
     }
 
     power(event) {
@@ -240,8 +266,14 @@ class Joystick extends IControls {
 }
 
 
-let move_control = new Joystick(canvas.width -100, canvas.height -100, 90-40*0.8, "data/icons/base.png", "data/icons/connector.png", "data/icons/controller.png")
+let mm = new IModule(1);
+let mr = new IModule(2);
+
+let move_control = new Joystick(canvas.width -100, canvas.height -100, 90-40*0.8, "data/icons/base.png", "data/icons/connector.png", "data/icons/controller.png", mm, mr)
 console.log(move_control)
+
+modules.push(mm)
+modules.push(mr)
 //move_control.connect();
 
 
@@ -299,12 +331,22 @@ function move(event){
 
 
 function update(){
-    connection.send('{"type": "Update", "data": {"modules_state": ['+move_control.active_modules()+']}}');
-    console.log('{"type": "Update", "data": {"modules_state": ['+move_control.active_modules()+']}}')
+    mess = '{"type": "Update", "data": {"modules_state": ['
+    for (el of modules)
+        {console.log(el)
+        mess += el.stringify()+', ';
+        }
+    if (mess[-2] == ',')
+        mess = mess.slice(0, -3);
+    mess += ']}}';
+    connection.send(mess)
+//    connection.send('{"type": "Update", "data": {"modules_state": ['+move_control.active_modules()+']}}');
+//    console.log('{"type": "Update", "data": {"modules_state": ['+move_control.active_modules()+']}}')
 //    joystick.angle %= 360;
 //    if (joystick.angle > 0 && joystick.angle < 180) joystick.angle -= 0.1;
 //    if (joystick.angle >= 180) joystick.angle += 0.1;
 //    //joy_update()
+
 }
 
 function joy_update(){
@@ -339,6 +381,30 @@ function rot(event) {
 
 document.body.addEventListener("mousemove", move)
 document.getElementById("field").addEventListener("mousewheel", scale)
+
+
+function change_movement(event) {
+    console.log(event, event.keyCode)
+    switch (event.keyCode) {
+        case 65:
+        case 68:
+        case 87:
+            mm.set(1);
+            break;
+        case 83:
+            mm.set(0);
+            break;
+        case 81:
+            mr.add(-0.01);
+            break;
+        case 69:
+            mr.add(0.01);
+            break;
+    }
+}
+
+
+document.body.addEventListener("keydown", change_movement)
 
 //document.getElementById("joystick").addEventListener("mousemove", power)
 //document.getElementById("joystick").addEventListener("mousewheel", rot)
